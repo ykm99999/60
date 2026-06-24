@@ -1,5 +1,5 @@
-# .github/workflows/sync-netcore-n60-pro.yml
-name: Sync netcore-n60-pro source
+# .github/workflows/sync-netcore-n60-pro-root.yml
+name: Sync netcore-n60-pro (OVERWRITE ROOT)
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
@@ -24,22 +24,18 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-      - name: Remove old netcore-n60-pro directory
-        run: rm -rf netcore-n60-pro
-
-      - name: Clone source from upstream
+      - name: Remove all files except .git
         run: |
-          git clone --depth 1 https://github.com/moshanghuakai01/netcore-n60-pro.git netcore-n60-pro
+          find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \;
 
-      - name: Remove .git from cloned source
-        run: rm -rf netcore-n60-pro/.git
-
-      - name: Add, commit and push
+      - name: Clone source to root
         run: |
-          git add netcore-n60-pro
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: sync netcore-n60-pro source"
-            git push origin main
-          fi
+          git clone --depth 1 https://github.com/moshanghuakai01/netcore-n60-pro.git tmp
+          cp -r tmp/. .
+          rm -rf tmp
+
+      - name: Commit and force push
+        run: |
+          git add .
+          git commit -m "chore: overwrite root with netcore-n60-pro source" || echo "No changes"
+          git push --force origin main
