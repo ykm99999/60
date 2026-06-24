@@ -1,4 +1,5 @@
-name: Sync netcore-n60-pro (DANGEROUS - overwrites root)
+# .github/workflows/sync-netcore-n60-pro.yml
+name: Sync netcore-n60-pro source (overwrite root)
 
 on:
   workflow_dispatch:
@@ -8,12 +9,26 @@ jobs:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git with token
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # 将 token 嵌入 remote URL，解决认证问题
+          git remote set-url origin https://oauth2:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Force reset to origin/main (discard local changes)
+        run: |
+          git fetch origin main
+          git reset --hard origin/main
 
       - name: Remove all files except .git
         run: |
@@ -25,10 +40,8 @@ jobs:
           cp -r tmp/. .
           rm -rf tmp
 
-      - name: Commit and push
+      - name: Commit and force push
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .
-          git commit -m "chore: sync netcore-n60-pro source (overwrite root)" || echo "No changes"
-          git push origin main
+          git commit -m "chore: sync netcore-n60-pro source (overwrite)" || echo "No changes to commit"
+          git push --force origin main
