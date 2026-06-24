@@ -1,5 +1,5 @@
 # .github/workflows/sync-netcore-n60-pro.yml
-name: Sync netcore-n60-pro source (overwrite root)
+name: Sync netcore-n60-pro source
 
 on:
   workflow_dispatch:
@@ -11,37 +11,35 @@ jobs:
       contents: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Configure Git with token
+      - name: Configure Git
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          # 将 token 嵌入 remote URL，解决认证问题
-          git remote set-url origin https://oauth2:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
 
-      - name: Force reset to origin/main (discard local changes)
-        run: |
-          git fetch origin main
-          git reset --hard origin/main
+      - name: Remove old netcore-n60-pro directory
+        run: rm -rf netcore-n60-pro
 
-      - name: Remove all files except .git
+      - name: Clone source from upstream
         run: |
-          find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \;
+          git clone --depth 1 https://github.com/moshanghuakai01/netcore-n60-pro.git netcore-n60-pro
 
-      - name: Clone source to root
-        run: |
-          git clone --depth 1 https://github.com/moshanghuakai01/netcore-n60-pro.git tmp
-          cp -r tmp/. .
-          rm -rf tmp
+      - name: Remove .git from cloned source
+        run: rm -rf netcore-n60-pro/.git
 
-      - name: Commit and force push
+      - name: Add, commit and push
         run: |
-          git add .
-          git commit -m "chore: sync netcore-n60-pro source (overwrite)" || echo "No changes to commit"
-          git push --force origin main
+          git add netcore-n60-pro
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: sync netcore-n60-pro source"
+            git push origin main
+          fi
