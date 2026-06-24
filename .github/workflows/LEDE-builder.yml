@@ -1,45 +1,34 @@
-# .github/workflows/sync-netcore-n60-pro.yml
-name: Sync netcore-n60-pro source
+name: Sync netcore-n60-pro (DANGEROUS - overwrites root)
 
 on:
-  workflow_dispatch:        # 手动触发
-  schedule:
-    - cron: '0 0 * * 0'     # 每周日零点自动同步（可选）
-
-env:
-  SOURCE_REPO: https://github.com/moshanghuakai01/netcore-n60-pro.git
-  SOURCE_BRANCH: main       # 若上游默认分支是 master，请修改
-  TARGET_BRANCH: main       # 你的目标分支
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-22.04
     permissions:
       contents: write
-
     steps:
-      - name: Checkout your repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.TARGET_BRANCH }}
+          ref: main
           fetch-depth: 0
 
-      - name: Remove existing netcore-n60-pro directory (if any)
-        run: rm -rf netcore-n60-pro
-
-      - name: Clone source repository
+      - name: Remove all files except .git
         run: |
-          git clone --depth 1 --branch ${{ env.SOURCE_BRANCH }} ${{ env.SOURCE_REPO }} netcore-n60-pro
+          find . -maxdepth 1 ! -name .git ! -name . -exec rm -rf {} \;
 
-      - name: Remove .git from cloned source
-        run: rm -rf netcore-n60-pro/.git
+      - name: Clone source to root
+        run: |
+          git clone --depth 1 https://github.com/moshanghuakai01/netcore-n60-pro.git tmp
+          cp -r tmp/. .
+          rm -rf tmp
 
-      - name: Commit and push to your ${{ env.TARGET_BRANCH }} branch
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add netcore-n60-pro
-          git commit -m "chore: sync netcore-n60-pro source from upstream" || echo "No changes to commit"
-          git push origin ${{ env.TARGET_BRANCH }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git add .
+          git commit -m "chore: sync netcore-n60-pro source (overwrite root)" || echo "No changes"
+          git push origin main
